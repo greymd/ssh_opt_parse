@@ -1,7 +1,12 @@
 #!/bin/bash
 set -u
+
+## Options work individually
 readonly SSH_SINGLE_OPTS="[1246AaCfGgKkMNnqsTtVvXxYy]"
+
+## Options require its argument(s).
 readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
+
 SSH_PORT=22
 SSH_USER=$(whoami)
 SSH_HOST=
@@ -58,7 +63,7 @@ parse_options () {
         ;;
     esac
   done
-  # Rest of the arguments are command line
+  # Rest of arguments may be command line
   if (( $# > 0 )); then
     SSH_COMMAND=("$1")
     shift
@@ -73,7 +78,7 @@ main () {
     return
   fi
   shift # remove beginning of "ssh"
-  parse_options "$@"
+  parse_options "${1+"$@"}"
   show_result
 }
 

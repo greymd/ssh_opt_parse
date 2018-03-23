@@ -1,0 +1,75 @@
+#!/bin/bash
+set -u
+readonly SSH_SINGLE_OPTS="[1246AaCfGgKkMNnqsTtVvXxYy]"
+readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
+SSH_PORT=22
+SSH_USER=$(whoami)
+SSH_HOST=
+SSH_CMD=()
+
+show_result () {
+printf "SSH_PORT\\t%s\\n" "${SSH_PORT-}"
+printf "SSH_USER\\t%s\\n" "${SSH_USER-}"
+printf "SSH_HOST\\t%s\\n" "${SSH_HOST-}"
+printf "SSH_CMD\\t%s\\n" "${SSH_CMD[*]-}"
+}
+
+parse_options () {
+  while (( $# > 0 )) ;do
+    case "$1" in
+      --)
+        break
+        ;;
+
+      -*)
+        if [[ "$1" =~ -${SSH_SINGLE_OPTS}*p$ ]]; then
+          SSH_PORT="$2"
+          shift
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*p. ]]; then
+          SSH_PORT=$(sed "s/-${SSH_SINGLE_OPTS}*p//" <<<"$1")
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*l$ ]] ;then
+          SSH_USER="$2"
+          shift
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*l. ]] ;then
+          SSH_USER=$(sed "s/-${SSH_SINGLE_OPTS}*l//" <<<"$1")
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}+$ ]] ;then
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*${SSH_MULTI_OPTS}$ ]] ;then
+          shift
+          shift
+        fi
+        ;;
+
+      *)
+        if [[ -n "${SSH_HOST}" ]] ; then
+          break
+        fi
+        if [[ -z "${SSH_HOST}" ]] && [[ "$1" =~ ^.*@.*$ ]] ; then
+          SSH_USER="${1%%@*}"
+        fi
+        if [[ -z "${SSH_HOST}" ]] ;then
+          SSH_HOST="${1##*@}"
+        fi
+        shift
+        ;;
+    esac
+  done
+  for _arg in "$@"; do
+    SSH_CMD=("${SSH_CMD[@]-}" "$_arg")
+  done
+}
+
+main () {
+  if ! [[ "$1" =~ ssh ]]; then
+    return
+  fi
+  shift # remove beginning of "ssh"
+  parse_options "$@"
+  show_result
+}
+
+main "${1+"$@"}"

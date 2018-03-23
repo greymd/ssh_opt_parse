@@ -1,0 +1,109 @@
+#!/bin/bash
+
+## !! Inspired by : https://qiita.com/arks22/items/db8eb6a14223ce29219a
+
+set -u
+
+## Options work individually
+readonly SSH_SINGLE_OPTS="[1246AaCfGgKkMNnqsTtVvXxYy]"
+
+## Options require its argument(s).
+readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
+
+SSH_PORT=22
+SSH_USER=$(whoami)
+SSH_HOST=
+SSH_COMMAND=()
+
+ssh_opt_show_result () {
+  printf "SSH_PORT\\t%s\\n" "${SSH_PORT}"
+  printf "SSH_USER\\t%s\\n" "${SSH_USER}"
+  printf "SSH_HOST\\t%s\\n" "${SSH_HOST-}"
+  printf "SSH_COMMAND\\t%s\\n" "${SSH_COMMAND[*]## }"
+}
+
+ssh_opt_parse_options () {
+  while (( $# > 0 )) ;do
+    case "$1" in
+      --)
+        break
+        ;;
+
+      -*)
+        if [[ "$1" =~ -${SSH_SINGLE_OPTS}*p$ ]]; then
+          SSH_PORT="$2"
+          shift
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*p. ]]; then
+          SSH_PORT=$(sed "s/-${SSH_SINGLE_OPTS}*p//" <<<"$1")
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*l$ ]] ;then
+          SSH_USER="$2"
+          shift
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*l. ]] ;then
+          SSH_USER=$(sed "s/-${SSH_SINGLE_OPTS}*l//" <<<"$1")
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}+$ ]] ;then
+          shift
+        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*${SSH_MULTI_OPTS}$ ]] ;then
+          shift
+          shift
+        fi
+        ;;
+
+      *)
+        if [[ -n "${SSH_HOST}" ]] ; then
+          break
+        fi
+        if [[ -z "${SSH_HOST}" ]] && [[ "$1" =~ ^.*@.*$ ]] ; then
+          SSH_USER="${1%%@*}"
+        fi
+        if [[ -z "${SSH_HOST}" ]] ;then
+          SSH_HOST="${1##*@}"
+        fi
+        shift
+        ;;
+    esac
+  done
+  # Rest of arguments may be command line
+  if (( $# > 0 )); then
+    SSH_COMMAND=("$1")
+    shift
+  fi
+  for _arg in "$@"; do
+    SSH_COMMAND=("${SSH_COMMAND[@]-}" "$_arg")
+  done
+}
+
+ssh_opt_parse () {
+  if ! [[ "$1" =~ ssh ]]; then
+    return
+  fi
+  shift # remove beginning of "ssh"
+  ssh_opt_parse_options "${1+"$@"}"
+  ssh_opt_show_result
+}
+
+get_ps_cmd () {
+  local _pane_pid="$1"
+  ps -o ppid,pid,command | \
+    awk -v pane_pid="${_pane_pid}" -v OFS=" " '$1==pane_pid{$1=$1;print}' | \
+    cut -d" " -f3-
+}
+
+main () {
+  local _ps_cmd _ssh_parse_result _ssh_user _ssh_host
+  local _pane_pid="$1"
+  IFS=' ' read -r -a _ps_cmd <<<"$(get_ps_cmd "$_pane_pid")"
+  if [[ "${_ps_cmd[*]-}" =~ ssh ]] ; then
+    _ssh_parse_result="$(ssh_opt_parse "${_ps_cmd[@]}" )"
+    _ssh_user=$(echo "${_ssh_parse_result}" | awk '$1=="SSH_USER"{print $2}')
+    _ssh_host=$(echo "${_ssh_parse_result}" | awk '$1=="SSH_HOST"{print $2}')
+    echo " #[bg=green,fg=black]ssh:${_ssh_user}@${_ssh_host}#[default]"
+  else
+    echo " ${_ps_cmd[*]-} "
+  fi
+}
+
+main "$@"

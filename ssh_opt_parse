@@ -5,13 +5,13 @@ readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
 SSH_PORT=22
 SSH_USER=$(whoami)
 SSH_HOST=
-SSH_CMD=()
+SSH_COMMAND=()
 
 show_result () {
-printf "SSH_PORT\\t%s\\n" "${SSH_PORT-}"
-printf "SSH_USER\\t%s\\n" "${SSH_USER-}"
-printf "SSH_HOST\\t%s\\n" "${SSH_HOST-}"
-printf "SSH_CMD\\t%s\\n" "${SSH_CMD[*]-}"
+  printf "SSH_PORT\\t%s\\n" "${SSH_PORT}"
+  printf "SSH_USER\\t%s\\n" "${SSH_USER}"
+  printf "SSH_HOST\\t%s\\n" "${SSH_HOST-}"
+  printf "SSH_COMMAND\\t%s\\n" "${SSH_COMMAND[*]## }"
 }
 
 parse_options () {
@@ -58,8 +58,13 @@ parse_options () {
         ;;
     esac
   done
+  # Rest of the arguments are command line
+  if (( $# > 0 )); then
+    SSH_COMMAND=("$1")
+    shift
+  fi
   for _arg in "$@"; do
-    SSH_CMD=("${SSH_CMD[@]-}" "$_arg")
+    SSH_COMMAND=("${SSH_COMMAND[@]-}" "$_arg")
   done
 }
 

@@ -5,7 +5,7 @@ set -u
 readonly SSH_SINGLE_OPTS="[1246AaCfGgKkMNnqsTtVvXxYy]"
 ## Options require its argument(s).
 readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
-readonly SSH_CONFIG_FILE="${HOME}/.ssh/config"
+readonly SSH_CONFIG_FILE=${SSH_CONFIG_FILE:-${HOME}/.ssh/config}
 
 SSH_PORT=
 SSH_USER=

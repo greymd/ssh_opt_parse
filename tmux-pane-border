@@ -4,92 +4,17 @@
 
 set -u
 
-## Options work individually
-readonly SSH_SINGLE_OPTS="[1246AaCfGgKkMNnqsTtVvXxYy]"
-
-## Options require its argument(s).
-readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
-
-SSH_PORT=22
-SSH_USER=$(whoami)
-SSH_HOST=
-SSH_COMMAND=()
-
-ssh_opt_show_result () {
-  printf "SSH_PORT\\t%s\\n" "${SSH_PORT}"
-  printf "SSH_USER\\t%s\\n" "${SSH_USER}"
-  printf "SSH_HOST\\t%s\\n" "${SSH_HOST-}"
-  printf "SSH_COMMAND\\t%s\\n" "${SSH_COMMAND[*]## }"
-}
-
-ssh_opt_parse_options () {
-  while (( $# > 0 )) ;do
-    case "$1" in
-      --)
-        break
-        ;;
-
-      -*)
-        if [[ "$1" =~ -${SSH_SINGLE_OPTS}*p$ ]]; then
-          SSH_PORT="$2"
-          shift
-          shift
-        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*p. ]]; then
-          SSH_PORT=$(sed "s/-${SSH_SINGLE_OPTS}*p//" <<<"$1")
-          shift
-        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*l$ ]] ;then
-          SSH_USER="$2"
-          shift
-          shift
-        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*l. ]] ;then
-          SSH_USER=$(sed "s/-${SSH_SINGLE_OPTS}*l//" <<<"$1")
-          shift
-        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}+$ ]] ;then
-          shift
-        elif [[ "$1" =~ -${SSH_SINGLE_OPTS}*${SSH_MULTI_OPTS}$ ]] ;then
-          shift
-          shift
-        fi
-        ;;
-
-      *)
-        if [[ -n "${SSH_HOST}" ]] ; then
-          break
-        fi
-        if [[ -z "${SSH_HOST}" ]] && [[ "$1" =~ ^.*@.*$ ]] ; then
-          SSH_USER="${1%%@*}"
-        fi
-        if [[ -z "${SSH_HOST}" ]] ;then
-          SSH_HOST="${1##*@}"
-        fi
-        shift
-        ;;
-    esac
-  done
-  # Rest of arguments may be command line
-  if (( $# > 0 )); then
-    SSH_COMMAND=("$1")
-    shift
-  fi
-  for _arg in "$@"; do
-    SSH_COMMAND=("${SSH_COMMAND[@]-}" "$_arg")
-  done
-}
-
+# Option parser for ssh command.
+# Source code is here: https://github.com/greymd/ssh_opt_parse
 ssh_opt_parse () {
-  if ! [[ "$1" =~ ssh ]]; then
-    return
-  fi
-  shift # remove beginning of "ssh"
-  ssh_opt_parse_options "${1+"$@"}"
-  ssh_opt_show_result
+  /bin/bash <(base64 --decode <<<"H4sIAHsKtloAA71W23LiRhB911f0Cnm5uIQWKpWHYBJcXmyzMcYxOJcCrBIwgMpCI2sEhLDst6dnJMEgaal1ZSt+MKNWz+k+3a0zk3tnjGzXGFlsrjASgL5UlFwOOl5gU5fBmvovYLsTe2VPlpbjbBSfWBPqOhvodm/Nbuv+5q5pdh563brar1R/+PHSuprezH59ad+7r6wX/L768++/NkNVxvTJ69L2CdgBA8ufLRfEDQqsWD6Gbj/d9Vox8mj8sUmuW/anO2fRod5vj90/1gh6tOGqc3/dujGvW3fNurZNWH7Ste1tp93cGWXG5saYulN7tlMU7vbQeezVxeqp23wMV7edbmS76rTbl/cf64WiouBWk3qByeZ0bfqELZ0ACkXYKgCeb7vBFNQYcDAIzthg4Kqghslw405NePKAKU9uTHnyhFKe3KinXKOMU96RvV8aYjNw1+5AyLN8RvhKNCiitJ7bDoFCAbQc/AwfoFiE2oTiC4CxxQjCVlScDWEA0PVitAIYYWNe9k+1mhL7lA4+9hT6/RCj/gX0MEVpnnYlT4PhsAbBnLj7XQD7jqlaVZXsbG5Pg68+E+cb4pVPxtMKjExAZUbmXsNQ4eLiguMX/1MWDmcNtYwsxHR+d9ZO+WS8k6yd78X6PJP028mEpoN07L4BN/k8tTMmNzW4uit/hDtVxEnOzvF3IAFHGP+kMd6/lzk+l0uNcknLBJdGYls5O2uUdurbQmX1XOgeB8zlSo1swONqYYlEc5g1xgWqMcGfHDwSFgCd7vWdwcLawIjAmC4WljsBxxaemJ0sMBLJI+09DFgcXSQ0pT6YGAJVCOk11BpE+pTYfCR/jSFKJrrzjQJUJK2caKyUVbKaoVYnqyl/PZHCzkhgrixnScypTxdmeAAlIqlPjPj7DykHrSkPzE9KBi7Fc3NM/YkgjWaYUywxEufrL/KxVlbkzmu/gE5eoZLWNinL9ZxaCzuOHDUbfzI5hydZFudYJ9/C+YH6wf/LWWRZrabIin/SoZidfnQ4OnRsOWDyhOp8Og+mF7I5qLRHfAd0y/UI5JnxPGDnhpE/HMj7+wlWYiA2fIaZTzzQV5B/zuX3xhgHD+S8dt3/MOTqYDwXeBU/ty97V7dFzbCBf1kaTwB9KshdXAswHJoGgWaqSUAmI2LFNFFggcIBwiB8dwweAuLL6jCPRz7oUQG2ohLIQg/pb3kZkqTCJvkkWPou9ih1AYlri018J6sgOh13MoSIVUBIAo6OTxZ0RVBkZrbr2u6M64+Ke3knsi86XOjOuXDsZB/pdsdTxMuS/rU//rLpBv4GPIqFOe17zFWO/S8xl7UThQsAAA==" | gzip -d) "$@"
 }
 
 get_ps_cmd () {
   local _pane_pid="$1"
-  ps -o ppid,pid,command | \
-    awk -v pane_pid="${_pane_pid}" -v OFS=" " '$1==pane_pid{$1=$1;print}' | \
-    cut -d" " -f3-
+  ps -o ppid,pid,command \
+    | perl -sanle 'if($F[0] eq $pane_pid){$_ =~ s/^\s+//;print}' -- -pane_pid="${_pane_pid}" \
+    | cut -d" " -f3-
 }
 
 main () {

@@ -2,9 +2,9 @@ ssh_opt_parse
 =======================
 
 Parse `ssh` command and its options.
-A port number, user name, host name and the command will be detected.
+The port number, user name, host name and remote command would be parsed.
 
-```
+```bash
 ./ssh_opt_parse ssh myuser@myhost
 SSH_PORT        22
 SSH_USER        myuser
@@ -18,12 +18,12 @@ SSH_HOST        cac01
 SSH_COMMAND     ls -al hoge fuga
 ```
 
-`~/.ssh/config` file is loaded automatically
+`~/.ssh/config` file is loaded automatically.
 
 
 `~/.ssh/config` :
 
-```
+```config
 Host host01
     Hostname 1.2.3.4
     User ubuntu
@@ -33,9 +33,9 @@ Host host02
     User ubuntu
 ```
 
-Then...
+Then the result would be like followings.
 
-```
+```bash
 $ ./ssh_opt_parse ssh host01
 SSH_PORT        1234
 SSH_USER        ubuntu

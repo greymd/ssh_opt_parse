@@ -7,8 +7,10 @@ readonly SSH_SINGLE_OPTS="[1246AaCfGgKkMNnqsTtVvXxYy]"
 ## Options require its argument(s).
 readonly SSH_MULTI_OPTS="[bcDEeFIiJLlmOopQRSWw]"
 
-SSH_PORT=22
-SSH_USER=$(whoami)
+readonly SSH_CONFIG_FILE="${HOME}/.ssh/config"
+
+SSH_PORT=
+SSH_USER=
 SSH_HOST=
 SSH_COMMAND=()
 
@@ -71,6 +73,35 @@ parse_options () {
   for _arg in "$@"; do
     SSH_COMMAND=("${SSH_COMMAND[@]-}" "$_arg")
   done
+
+  if [[ -n "${SSH_HOST}" ]]; then
+    if [[ -z "${SSH_USER}" ]] ;then
+      SSH_USER=$(get_value_from_ssh_config "${SSH_HOST}" "User")
+      # If there is no record for the host in the ~/.ssh/config.
+      if [[ $? -eq 1 ]]; then
+        SSH_USER=$(whoami)
+      fi
+    fi
+
+    if [[ -z "${SSH_PORT}" ]] ;then
+      SSH_PORT=$(get_value_from_ssh_config "${SSH_HOST}" "Port")
+      # If there is no record for the host in the ~/.ssh/config.
+      if [[ $? -eq 1 ]]; then
+        SSH_PORT=22
+      fi
+    fi
+  fi
+}
+
+get_value_from_ssh_config () {
+  local _host="$1"
+  local _key="$2"
+    perl -anpe 's/^\s+//' "${SSH_CONFIG_FILE}" \
+    | grep -v '^#' \
+    | perl -anle '$F[0] =~ /^(HOST|MATCH)$/i and $key=$F[1]; print "$key\t$_"' \
+    | perl -sanle '$F[0] eq $host and $F[1] =~ /^$key$/i and print $F[2]' -- -host="${_host}" -key="${_key}" \
+    | grep .
+    return $?
 }
 
 main () {
